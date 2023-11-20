@@ -22,34 +22,102 @@ profitability of the loan portfolio.
 """
 
 class RDSDatabaseConnector:
-    def __init__(self):
-        credentials: dict = get_credentials("credentials.yaml")
-
-        self.database_type: str = "postgresql"
-        self.database_api: str = "psycopg2"
-
-        self.user: str = credentials["RDS_USER"]  # Attributes set to credentials from dict.
-        self.password: str = credentials["RDS_PASSWORD"]
-        self.host: str = credentials["RDS_HOST"]
-        self.port : str = credentials["RDS_PORT"]
-        self.database: str = credentials["RDS_DATABASE"]
-
-        self.engine = create_engine(f"{self.database_type}+{self.database_api}://{self.user}:{self.password}@{self.host}:{self.port}/{self.database}")
-        print("Engine created:", self.engine)
-
-
-def get_credentials(filename) -> dict:
-    """Creates a dictionary from `credentials.yaml` which can be used to access a database.
-
-    Returns
-    -------
-    dict
-        - A dictionary of credentails that can be used to access a database.
     """
-    filepath: str = os.path.join(os.path.dirname(__file__), filename)
-    with open(filepath, "r") as file:
-        credentials_dict: dict = yaml.safe_load(file)
-    return credentials_dict
+    A connection to an AWS database that can be queried.
+
+    Attributes
+    ----------
+    db_type : str
+    > The type of database.
+    db_api : str
+    > The API that is being used to connect to the database.
+    engine : psycopg2.Engine
+    > An Engine created from data in `credentials.yaml` to connect to the AWS database.
+    """
+    def __init__(self, db_type, db_api="psycopg2"):
+        """
+        Constructor method for the class.
+
+        Parameters
+        ----------
+        db_type : str
+        > The type of database.
+        db_api : str
+        > The API that is being used to connect to the database.
+        """
+        credentials: dict = self._get_yaml_credentials("credentials.yaml")
+
+        self.db_type: str = db_type
+        self.db_api: str = db_api
+
+        self.__user: str = credentials["RDS_USER"]  # Attributes set to data extracted from credentials dict, 
+        # ... no need to access them outside of this method.
+        self.__password: str = credentials["RDS_PASSWORD"]
+        self.__host: str = credentials["RDS_HOST"]
+        self.__port: str = credentials["RDS_PORT"]
+        self.__db: str = credentials["RDS_DATABASE"]
+
+        self.engine: Engine = create_engine(f"{self.db_type}+{self.db_api}://{self.__user}:{self.__password}@{self.__host}:{self.__port}/{self.__db}")
 
 
-rds = RDSDatabaseConnector()
+    def _get_yaml_credentials(self, filename: str) -> dict:
+        """
+        Gets credentials from a YAML file and converts to a Python readable dict.
+
+        Parameters
+        ----------
+        filename : str
+        > The name of the file which contains all of the credentials to access an AWS database.
+
+        Returns
+        -------
+        credentials_dict : dict
+        > A dictionary containing the credentials found in the YAML file.
+        """
+        filepath: str = os.path.join(os.path.dirname(__file__), filename)
+        with open(filepath, "r") as file:
+            credentials_dict: dict = yaml.safe_load(file)
+        return credentials_dict
+
+
+    def query(self, query: str) -> pd.DataFrame:
+        """
+        Runs a query on connected database.
+
+        Parameters
+        ----------
+        query : str
+        > The SQL query you wish to run.
+
+        Returns
+        -------
+        df : DataFrame
+        > A Pandas DataFrame which can be manipulated in Python.
+        """
+        with self.engine.connect() as con:
+            df: DataFrame = pd.read_sql(query, con)
+        return df
+
+
+    def create_csv(self, df: pd.DataFrame):
+        """
+        Creates a `data.csv` file from a DataFrame. 
+        
+        If there is already a `data.csv` file present, it will iterate through variations 
+        of the name until it finds one that doesn't exist yet.
+
+        Parameters
+        ----------
+        df : pd.DataFrame
+            The DataFrame you wish to convert to a .csv file.
+        """
+        filename = "data.csv"
+        counter = 1
+        while os.path.exists(filename):
+            filename = "data" + "(" + str(counter) + ").csv"
+            counter += 1
+        df.to_csv(filename, index=False)
+        
+
+db = RDSDatabaseConnector("postgresql")
+db.create_csv(db.query("SELECT * FROM loan_payments;"))
