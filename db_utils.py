@@ -1,8 +1,9 @@
-import os
-import yaml
-import psycopg2
 from sqlalchemy import create_engine
+import os
 import pandas as pd
+import psycopg2
+import yaml
+
 
 """
 Here I'm going to perform exploratory data analysis on a loan 
@@ -28,27 +29,27 @@ class RDSDatabaseConnector:
     Attributes
     ----------
     db_type : str
-    > The type of database.
+        The type of database.
     db_api : str
-    > The API that is being used to connect to the database.
+        The API that is being used to connect to the database.
     engine : psycopg2.Engine
-    > An Engine created from data in `credentials.yaml` to connect to the AWS database.
+        An Engine created from data in `credentials.yaml` to connect to the AWS database.
     """
-    def __init__(self, db_type, db_api="psycopg2"):
+    def __init__(self, database_type: str, database_api: str = "psycopg2"):
         """
         Constructor method for the class.
 
         Parameters
         ----------
         db_type : str
-        > The type of database.
+            The type of database.
         db_api : str
-        > The API that is being used to connect to the database.
+            The API that is being used to connect to the database.
         """
-        credentials: dict = self._get_yaml_credentials("credentials.yaml")
+        credentials = self._get_yaml_credentials("credentials.yaml")
 
-        self.db_type: str = db_type
-        self.db_api: str = db_api
+        self.database_type: str = database_type
+        self.database_api: str = database_api
 
         # Attributes set to data extracted from credentials dict.
         # There's no need to access them outside of this method, so they're mangled.
@@ -56,10 +57,9 @@ class RDSDatabaseConnector:
         self.__password: str = credentials["RDS_PASSWORD"]
         self.__host: str = credentials["RDS_HOST"]
         self.__port: str = credentials["RDS_PORT"]
-        self.__db: str = credentials["RDS_DATABASE"]
+        self.__database: str = credentials["RDS_DATABASE"]
 
-        self.engine: Engine = create_engine(f"{self.db_type}+{self.db_api}://{self.__user}:{self.__password}@{self.__host}:{self.__port}/{self.__db}")
-
+        self.engine: Engine = create_engine(f"{self.database_type}+{self.database_api}://{self.__user}:{self.__password}@{self.__host}:{self.__port}/{self.__database}")
 
     def _get_yaml_credentials(self, filename: str) -> dict:
         """
@@ -68,68 +68,80 @@ class RDSDatabaseConnector:
         Parameters
         ----------
         filename : str
-        > The name of the file which contains all of the credentials to access an AWS database.
+            The name of the file which contains all of the credentials to access an AWS database.
 
         Returns
         -------
         credentials_dict : dict
-        > A dictionary containing the credentials found in the YAML file.
+            A dictionary containing the credentials found in the YAML file.
         """
-        filepath: str = os.path.join(os.path.dirname(__file__), filename)
+        filepath = os.path.join(os.path.dirname(__file__), filename)
         with open(filepath, "r") as file:
-            credentials_dict: dict = yaml.safe_load(file)
+            credentials_dict = yaml.safe_load(file)
         return credentials_dict
 
 
-    def query(self, query: str) -> pd.DataFrame:
+    def query(self, SQL_query: str) -> pd.DataFrame:
         """
         Runs a query on connected database.
 
         Parameters
         ----------
         query : str
-        > The SQL query you wish to run.
+            The SQL query you wish to run.
 
         Returns
         -------
-        df : DataFrame
-        > A Pandas DataFrame which can be manipulated in Python.
+        df : pd.DataFrame
+            A Pandas DataFrame which can be manipulated in Python.
         """
         with self.engine.connect() as con:
-            df: DataFrame = pd.read_sql(query, con)
+            df = pd.read_sql(query, con)
         return df
 
-
-    def create_csv(self, df: pd.DataFrame):
+    def create_csv(self, SQL_query: str) -> None:
         """
-        Creates a `data.csv` file from a DataFrame. 
+        Creates a .csv file from the result of an SQL query.
         
-        If there is already a `data.csv` file present, it will iterate through variations 
-        of the name until it finds one that doesn't exist yet.
-
         Parameters
         ----------
-        df : pd.DataFrame
-            The DataFrame you wish to convert to a .csv file.
+        query : str
+            The SQL query you wish to generate a .csv file from.
         """
         filename = "data.csv"
-        counter = 1
+        counter = 0
         while os.path.exists(filename): # Iterates until there is a new filename.
             counter += 1
-            filename = "data" + "(" + str(counter) + ").csv"  
-        df.to_csv(filename, index=False)
+            filename = "data" + "(" + str(counter) + ").csv" 
+        self.query(SQL_query).to_csv(filename, index=False)
 
 
-def df_from_csv(filename):
-    filepath: str = os.path.join(os.path.dirname(__file__), filename)
+def df_from_csv(filename: str) -> pd.DataFrame:
+    """
+    Converts data from a .csv file into a Pandas DataFrame.
+
+    Parameters
+    ----------
+    filename : str
+        The name of the .csv file you wish to convert to a DataFrame.
+
+    Returns
+    -------
+    df : pd.DataFrame
+        A DataFrame containing the converted data from the .csv file.    
+    """
+    filepath = os.path.join(os.path.dirname(__file__), filename)
     with open(filepath, "r") as file:
         df = pd.read_csv(file)
     return df
         
-# The commented code below gets the data from the AWS database and converts it into a .csv file.
-#
-# db = RDSDatabaseConnector("postgresql")
-# db.create_csv(db.query("SELECT * FROM loan_payments;"))
 
-df = df_from_csv("data.csv")
-df.info()
+if __name__ == "__main__":
+    # The commented code below gets the data from the AWS database and converts it into a .csv file.
+
+    # db = RDSDatabaseConnector("postgresql")
+    # db.query("SELECT * FROM loan_payments;")
+    # db.create_csv()
+
+    df = df_from_csv("data.csv")
+    df.info()
