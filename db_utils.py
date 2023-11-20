@@ -50,8 +50,9 @@ class RDSDatabaseConnector:
         self.db_type: str = db_type
         self.db_api: str = db_api
 
-        self.__user: str = credentials["RDS_USER"]  # Attributes set to data extracted from credentials dict, 
-        # ... no need to access them outside of this method.
+        # Attributes set to data extracted from credentials dict.
+        # There's no need to access them outside of this method, so they're mangled.
+        self.__user: str = credentials["RDS_USER"]  
         self.__password: str = credentials["RDS_PASSWORD"]
         self.__host: str = credentials["RDS_HOST"]
         self.__port: str = credentials["RDS_PORT"]
@@ -113,11 +114,22 @@ class RDSDatabaseConnector:
         """
         filename = "data.csv"
         counter = 1
-        while os.path.exists(filename):
-            filename = "data" + "(" + str(counter) + ").csv"
+        while os.path.exists(filename): # Iterates until there is a new filename.
             counter += 1
+            filename = "data" + "(" + str(counter) + ").csv"  
         df.to_csv(filename, index=False)
-        
 
-db = RDSDatabaseConnector("postgresql")
-db.create_csv(db.query("SELECT * FROM loan_payments;"))
+
+def df_from_csv(filename):
+    filepath: str = os.path.join(os.path.dirname(__file__), filename)
+    with open(filepath, "r") as file:
+        df = pd.read_csv(file)
+    return df
+        
+# The commented code below gets the data from the AWS database and converts it into a .csv file.
+#
+# db = RDSDatabaseConnector("postgresql")
+# db.create_csv(db.query("SELECT * FROM loan_payments;"))
+
+df = df_from_csv("data.csv")
+df.info()
