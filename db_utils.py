@@ -34,21 +34,8 @@ class RDSDatabaseConnector:
         self.port : str = credentials["RDS_PORT"]
         self.database: str = credentials["RDS_DATABASE"]
 
-        self.engine = self.create_engine()
+        self.engine = create_engine(f"{self.database_type}+{self.database_api}://{self.user}:{self.password}@{self.host}:{self.port}/{self.database}")
         print("Engine created:", self.engine)
-        
-
-    def create_engine(self):
-        """
-        Creates a(n) SQLAlchemy engine from class attributes.
-
-        Returns
-        -------
-        **SQLAlchemy Engine**
-            - An 
-        """
-        return create_engine(f"{self.database_type}+{self.database_api}://{self.user}:{self.password}@{self.host}:{self.port}/{self.database}")
-
 
 
 def get_credentials(filename) -> dict:
