@@ -23,7 +23,7 @@ profitability of the loan portfolio.
 
 class RDSDatabaseConnector:
     def __init__(self):
-        credentials: dict = get_credentials(CREDENTIALS)
+        credentials: dict = get_credentials("credentials.yaml")
 
         self.database_type: str = "postgresql"
         self.database_api: str = "psycopg2"
@@ -52,5 +52,4 @@ def get_credentials(filename) -> dict:
     return credentials_dict
 
 
-CREDENTIALS = "credentials.yaml"
 rds = RDSDatabaseConnector()
