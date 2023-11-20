@@ -2,7 +2,7 @@ import pandas as pd
 import numpy as np
 import db_utils
 
-# TODO : Create a DataTransfom class with methods that can be applied to DataFrame columns.
+# FIXME : M3. Task 1 : Create a DataTransfom class with methods that can be applied to DataFrame columns.
 class DataTransform:  
     def __init__(self, df: pd.DataFrame):
         self.df = df
@@ -25,6 +25,9 @@ class DataTransform:
             if df[col].nunique() < 25 and df[col].dtypes not in ["int64", "float64"]:
                 df[col] = df[col].astype('category')
         
+
+        # TODO Convert date columns to datetime.
+        # TODO Figure out what to do with the NaN values.
 
     def drop_NaNs(self):
         self.df = self.df.dropna(how="any")
