@@ -22,6 +22,7 @@ Ultimately, my goal is to improve the performance and
 profitability of the loan portfolio.
 """
 
+
 class RDSDatabaseConnector:
     """
     A connection to an AWS database that can be queried.
