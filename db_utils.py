@@ -145,4 +145,4 @@ if __name__ == "__main__":
     # db.create_csv()
 
     df = df_from_csv("data.csv")
-    df.info()
+    display(df)

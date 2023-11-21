@@ -4,40 +4,37 @@ import db_utils
 
 # FIXME : M3. Task 1 : Create a DataTransfom class with methods that can be applied to DataFrame columns.
 class DataTransform:  
-    def __init__(self, df: pd.DataFrame):
-        self.df = df
+    def __init__(self, dataframe: pd.DataFrame):
+        self.df = dataframe
 
-        # loan_amount (amount of loan the applicant received) 
-        self.df.loan_amount = self.df.loan_amount.astype(np.float64)
+        for col in self.df.columns:
+            # Converts columns with dates in them into datetime64[ns] datatypes.
+            if col in ["issue_date", "earliest_credit_line", "last_payment_date", "next_payment_date", "last_credit_pull_date"]:
+                self.df[col] = pd.to_datetime(self.df[col], format="mixed")
 
-        # term (number of monthly payments for the loan)
-        self.df.term = pd.to_numeric(self.df.term.map(lambda x: str(x).rstrip(" months")), errors="coerce")
-        self.df.term = self.df.term.fillna(0).astype(np.int64)
+            # Converts payment_plan's datatype into a boolean value since entries in column are either "y" or "n". 
+            if col == "payment_plan":
+                self.df[col] = self.df[col] == "y"
 
-        # sub_grade (LC assigned loan sub grade)
-        self.df.sub_grade = self.df.sub_grade.map(lambda x: list(x)[1])
+            # Removes redundant data from sub_grade.
+            if col == "sub_grade":
+                self.df[col] = self.df[col].map(lambda x: x[1:]).astype("Int64")
 
-        # mths_since_last_delinq
-        self.df.mths_since_last_delinq.fillna(0)
+            # Turns columns with unnecessary float64 type into Int64 (accepts NaN values).
+            if col in ["funded_amount", "mths_since_last_delinq", "mths_since_last_record", "collections_12_mths_ex_med", "mths_since_last_major_derog"]:
+                self.df[col] = self.df[col].astype("Int64")
 
-        # turn what's left that isn't numbers into categorical data
-        for col in df.columns:
-            if df[col].nunique() < 25 and df[col].dtypes not in ["int64", "float64"]:
-                df[col] = df[col].astype('category')
-        
+            # Converts all previously int64 columns into Int64 (notice capital "I") to remain uniform with the other columns.
+            if self.df[col].dtype == "int64":
+                self.df[col] = self.df[col].astype("Int64")
 
-        # TODO Convert date columns to datetime.
-        # TODO Figure out what to do with the NaN values.
-
-    def drop_NaNs(self):
-        self.df = self.df.dropna(how="any")
-        
-
-        
+            # Converts all columns with text and fewer than 25 unique options into categories.       
+            if self.df[col].nunique() < 25 and self.df[col].dtypes not in []:
+                self.df[col] = self.df[col].astype("category")
+            
+       
         
 pd.set_option("display.max_columns", None)
 
 transformed = DataTransform(db_utils.df_from_csv("data.csv"))
-
 transformed.df.info()
-display(transformed.df)
