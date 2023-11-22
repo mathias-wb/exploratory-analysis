@@ -17,7 +17,7 @@ class DataTransform:
         Constructor method which transforms the dataframe.
 
         Parameters:
-            dataframe -- dataframe
+            dataframe -- dataframe # FIXME Finish the docstring.
         """
         self.df = dataframe
 
@@ -47,6 +47,7 @@ class DataTransform:
                 self.df[col] = self.df[col].astype("category")
 
 
+# DONE : Task 2 - Get information from the DataFrame.
 class DataFrameInfo:
     def __init__(self, dataframe) -> None:
         self.df = dataframe
@@ -116,7 +117,7 @@ if __name__ == "__main__":
     transformed = DataTransform(db_utils.df_from_csv("data.csv"))
     df_info = DataFrameInfo(transformed.df)
 
-    column = "mths_since_last_major_derog"
+    column = "annual_inc"  # This column for example
 
     print(df_info, "\n===")
     print(df_info.get_details(column))
