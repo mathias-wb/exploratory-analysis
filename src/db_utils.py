@@ -109,18 +109,19 @@ class RDSDatabaseConnector:
         query : str
             The SQL query you wish to generate a .csv file from.
         """
+        data_dir = os.path.join("..", "data")
         filename = "loans.csv"
 
         if not os.path.exists(data_dir):
             os.makedirs(data_dir)
 
-        filepath = os.path.join("..", "data", filename)
+        filepath = os.path.join(data_dir, filename)
 
         counter = 0
         while os.path.exists(filepath): # Iterates until there is a new filename.
             counter += 1
             filename = "loans" + "(" + str(counter) + ").csv"
-            filepath = os.path.join("..", "data", filename)
+            filepath = os.path.join(data_dir, filename)
         self.query(SQL_query).to_csv(filepath, index=False)
 
 
@@ -138,7 +139,7 @@ def df_from_csv(filename="loans.csv") -> pd.DataFrame:
     df : pd.DataFrame
         A DataFrame containing the converted data from the .csv file.    
     """
-    data_dir = "data"
+    data_dir = os.path.join("..", "data")
     filepath = os.path.join(data_dir, filename)
 
     with open(filepath, "r") as file:
