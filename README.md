@@ -41,8 +41,7 @@ Run `python eda.py` to generate analysis and plots from the data.
     
     ├── data/ 
     │   └── loans.csv  
-    ├── images/
-    │   └── plots/
+    ├── plots/
     ├── src/
     │   ├── db_utils.py
     │   ├── data_processing.py 
