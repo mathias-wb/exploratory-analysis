@@ -47,7 +47,7 @@ class RDSDatabaseConnector:
         db_api : str
             The API that is being used to connect to the database.
         """
-        credentials = self._get_yaml_credentials("credentials.yaml")
+        credentials = self._get_yaml_credentials()
 
         self.database_type: str = database_type
         self.database_api: str = database_api
@@ -62,7 +62,7 @@ class RDSDatabaseConnector:
 
         self.engine: Engine = create_engine(f"{self.database_type}+{self.database_api}://{self.__user}:{self.__password}@{self.__host}:{self.__port}/{self.__database}")
 
-    def _get_yaml_credentials(self, filename: str) -> dict:
+    def _get_yaml_credentials(self) -> dict:
         """
         Gets credentials from a YAML file and converts to a Python readable dict.
 
@@ -76,7 +76,7 @@ class RDSDatabaseConnector:
         credentials_dict : dict
             A dictionary containing the credentials found in the YAML file.
         """
-        filepath = os.path.join(os.path.dirname(__file__), filename)
+        filepath = os.path.join("..", "credentials.yaml")
         with open(filepath, "r") as file:
             credentials_dict = yaml.safe_load(file)
         return credentials_dict
@@ -97,7 +97,7 @@ class RDSDatabaseConnector:
             A Pandas DataFrame which can be manipulated in Python.
         """
         with self.engine.connect() as con:
-            df = pd.read_sql(query, con)
+            df = pd.read_sql(SQL_query, con)
         return df
 
     def create_csv(self, SQL_query: str) -> None:
@@ -109,15 +109,22 @@ class RDSDatabaseConnector:
         query : str
             The SQL query you wish to generate a .csv file from.
         """
-        filename = "data.csv"
+        filename = "loans.csv"
+
+        if not os.path.exists(data_dir):
+            os.makedirs(data_dir)
+
+        filepath = os.path.join("..", "data", filename)
+
         counter = 0
-        while os.path.exists(filename): # Iterates until there is a new filename.
+        while os.path.exists(filepath): # Iterates until there is a new filename.
             counter += 1
-            filename = "data" + "(" + str(counter) + ").csv" 
-        self.query(SQL_query).to_csv(filename, index=False)
+            filename = "loans" + "(" + str(counter) + ").csv"
+            filepath = os.path.join("..", "data", filename)
+        self.query(SQL_query).to_csv(filepath, index=False)
 
 
-def df_from_csv(filename: str) -> pd.DataFrame:
+def df_from_csv(filename="loans.csv") -> pd.DataFrame:
     """
     Converts data from a .csv file into a Pandas DataFrame.
 
@@ -131,7 +138,9 @@ def df_from_csv(filename: str) -> pd.DataFrame:
     df : pd.DataFrame
         A DataFrame containing the converted data from the .csv file.    
     """
-    filepath = os.path.join(os.path.dirname(__file__), filename)
+    data_dir = "data"
+    filepath = os.path.join(data_dir, filename)
+
     with open(filepath, "r") as file:
         df = pd.read_csv(file)
     return df
@@ -140,9 +149,9 @@ def df_from_csv(filename: str) -> pd.DataFrame:
 if __name__ == "__main__":
     # The commented code below gets the data from the AWS database and converts it into a .csv file.
 
-    # db = RDSDatabaseConnector("postgresql")
+    db = RDSDatabaseConnector("postgresql")
     # db.query("SELECT * FROM loan_payments;")
-    # db.create_csv()
+    db.create_csv("SELECT * FROM loan_payments;")
 
-    df = df_from_csv("data.csv")
+    df = df_from_csv()
     display(df)
