@@ -1,11 +1,16 @@
 import pandas as pd
 import numpy as np
-import matplotlib as plt
+import matplotlib.pyplot as plt
 import seaborn as sns
+import missingno as msno
+
+import matplotlib
 import db_utils
 
 pd.set_option("display.max_columns", None)
-df = db_utils.df_from_csv("data.csv")
+pd.set_option("display.max_rows", None)
+
+df = db_utils.df_from_csv()
 
 # === Step 1. Transforming Data ===
 
@@ -39,14 +44,14 @@ class DataTransform:
         Cleans data within columns that require specific cleaning.
         """
         self.df["sub_grade"] = self.df["sub_grade"].apply(lambda x: x[1:])
-        self.df["term"] = self.df["term"].str.replace(" months", "") #if " months" in str(x) else x
-        #self.df["term"] = self.df["term"].apply(lambda x: str(x).replace(" months", "") if " months" in str(x) else x)
+        self.df["term"] = self.df["term"].str.replace(" months", "").astype("Int64")
+        self.df["verification_status"] = self.df["verification_status"] != "Not Verified"
 
     def convert_to_int(self):
         """
         Converts columns that had unnecessary float values to integers.
         """
-        for col in ["term", "sub_grade", "loan_amount", "funded_amount", "mths_since_last_delinq", "mths_since_last_record", "collections_12_mths_ex_med", "mths_since_last_major_derog"]:
+        for col in ["sub_grade", "loan_amount", "funded_amount", "mths_since_last_delinq", "mths_since_last_record", "collections_12_mths_ex_med", "mths_since_last_major_derog"]:
             self.df[col] = pd.to_numeric(self.df[col], errors="coerce").astype("Int64")
 
     def convert_to_category(self):
@@ -62,8 +67,8 @@ class DataTransform:
             self.df[col] = pd.to_datetime(self.df[col], format="%b-%Y", errors="coerce")
 
     def convert_to_bool(self):
-        for col in ["payment_plan"]:
-            self.df[col] = self.df[col] == "y"
+        self.df["payment_plan"] = self.df["payment_plan"] == "y"
+        self.df["policy_code"] = self.df["policy_code"] == 1
 
 
 # === Step 2. Get Information ===
@@ -86,14 +91,14 @@ class DataFrameInfo:
         else:
             return None
 
-    def get_mean(self, column=None, sig_figure=2):
+    def get_mean(self, column=None, sig_figures=2):
         if column is None:
             output = f"=== Mean ===\n"
             for col in self.df:
                 output += f"{col}: {self.get_mean(col)}\n"
             return output[:-1]
         elif self.df[column].dtype not in ["category", "datetime64[ns]", "bool"]:
-            return round(self.df[column].mean(), sig_figure)
+            return round(self.df[column].mean(), sig_figures)
         elif self.df[column].dtype != "category":
             self.df[column].mean()
         else:
@@ -108,7 +113,7 @@ class DataFrameInfo:
         else:
             return list(self.df[column].mode().head(5))
 
-    def get_standard_deviation(self, column=None, sig_figure=2):
+    def get_standard_deviation(self, column=None, sig_figures=2):
         if column is None:
             output = f"=== Standard Deviation ===\n"
             for col in self.df:
@@ -116,7 +121,7 @@ class DataFrameInfo:
                     output += f"{col}: {self.get_standard_deviation(col)}\n"
             return output[:-1]
         elif self.df[column].dtype not in ["category", "datetime64[ns]", "bool"]:
-            return round(self.df[column].std(), sig_figure)
+            return round(self.df[column].std(), sig_figures)
         elif self.df[column].dtype != "category":
             self.df[column].std()
         else:
@@ -141,7 +146,8 @@ class DataFrameInfo:
         if column is None:
             output = f"=== Null Values ===\n"
             for col in self.df:
-                output += f"{col}: {sum(self.df[col].isna())} ({round(sum(self.df[col].isna()) * 100 / self.get_shape()[0], sig_figures)}%)\n"
+                if sum(self.df[col].isna()) != 0:
+                    output += f"{col}: {sum(self.df[col].isna())} ({round(sum(self.df[col].isna()) * 100 / self.get_shape()[0], sig_figures)}%)\n"
             return output[:-1]
         else:
             return f"{sum(self.df[column].isna())} ({round(sum(self.df[column].isna()) * 100 / self.get_shape()[0], sig_figures)}%)"
@@ -156,49 +162,69 @@ class DataFrameInfo:
 # === Step 3. Removing and Imputing Missing Values ===
 
 class DataFrameTransform:
+    """Initializes DataFrameTransform with a dataframe.
+    
+    Attributes
+    ----------
+    dataframe : (pandas.DataFrame)
+        The dataframe to transform.
+    """
     def __init__(self, dataframe):
         self.df = dataframe
-    
-    def drop_missing(self, column=None):
-        if column is None:
-            for col in self.df:
-                self.drop_missing(col)
-        else:
-            self.df = self.df.dropna(subset=[column])
 
-    def impute_missing(self, column=None, method="mean"):
-        if column is None:
-            for col in self.df:
-                self.impute_missing(col)
-        else:
-            if method == "mean":
-                self.df[column] = self.df[column].fillna(self.df[column].mean())
-            elif method == "median":
-                self.df[column] = self.df[column].fillna(self.df[column].median())
-            elif method == "mode":
-                self.df[column] = self.df[column].fillna(self.df[column].mode()[0])
-            elif method == "drop":
-                self.df = self.df.dropna(subset=[column])
-            else:
-                self.df[column] = self.df[column].fillna(method)
+        # Columns with more than 50% null values get dropped.
+        self.drop_columns(["mths_since_last_delinq", "mths_since_last_record", "next_payment_date", "mths_since_last_major_derog"])
+
+        # Columns that have null values that are likely should be zeros are filled with zeros.
+        self.fill_zero_columns(["funded_amount"])
+        
+        self.impute_median_columns(["last_payment_date", "last_credit_pull_date"])
+        self.impute_mean_columns(["collections_12_mths_ex_med"])
+
+        self.drop_rows(["term", "int_rate", "employment_length"])
+
+    def drop_columns(self, columns:list):
+        """Drops specified columns from the dataframe.
+
+        Parameters
+        ----------
+        columns : (list)
+            The column names to drop.
+        """
+        for col in columns:
+            self.df = self.df.drop(col, axis=1)
+
+    def fill_zero_columns(self, columns:list):
+        for col in columns:
+            self.df[col] = self.df[col].fillna(0)
+
+    def impute_median_columns(self, columns:list):
+        for col in columns:
+            self.df[col] = self.df[col].fillna(self.df[col].median())
+
+    def impute_mean_columns(self, columns:list, sig_figures=2):
+        for col in columns:
+            self.df[col] = self.df[col].fillna(round(self.df[col].mean(), 2))
+
+    def drop_rows(self, columns:list):
+        for col in columns:
+            self.df = self.df[~self.df[col].isna()]
 
 
 class Plotter:
     def __init__(self, dataframe):
         self.df = dataframe
 
-    def plot_line(self, x, y):
-        plt.figure(figsize=(10, 5))
-        plt.plot(self.df[x], self.df[y])
-        plt.xlabel(x)
-        plt.ylabel(y)
+    def null_difference(self, new_df):
+        fig, axes = plt.subplots(2, 1, figsize=(50, 50))
+        msno.bar(self.df, ax=axes[0], color="darkred")
+        msno.bar(new_df, ax=axes[1], color="green")
         plt.show()
-
 
 # === A. Transforming Data ===
 df = DataTransform(df).df
+plot_df = Plotter(df)
 
-# === B. Getting Information ===
-info = DataFrameInfo(df)
-
-# === C. Removing and Imputing Missing Values ===
+df = DataFrameTransform(df).df
+info_df = DataFrameInfo(df)
+plot_df.null_difference(df)
