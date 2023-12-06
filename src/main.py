@@ -311,11 +311,11 @@ class DataFrameInfo:
 class DataFrameTransform:
     """Initializes DataFrameTransform with a dataframe.
     """
-    def drop_columns(self, df:pd.DataFrame, threshold:int=50):
+    def drop_columns(self, df:pd.DataFrame, threshold:float=0.5):
         """Drops columns from the dataframe with more nulls than the threshold percentage.
         """
         for col in df:
-            if DataFrameInfo().get_null(df, col)[1] > threshold / 100:
+            if DataFrameInfo().get_null(df, col)[1] >= threshold:
                 df = df.drop(col, axis=1)
         return df
 
@@ -351,11 +351,49 @@ class DataFrameTransform:
                     else:
                         box = pd.Series(yeojohnson(df[col].astype("float64"))[0])
                     df[col] = log if abs(skew(log) < abs(skew(box))) else box  # chooses the closest to 0
-        
         return df
 
-    def remove_outliers(self, columns:list):  # TODO add outlier removal
-        pass
+    def remove_outliers_zscore(self, df:pd.DataFrame):
+        #Z-Score Method
+        new_df = df.copy()
+        for col in df:
+            if df[col].dtype not in ["category", "bool"]:
+                upper_limit = df[col].mean() + 3*df[col].std()
+                lower_limit = df[col].mean() - 3*df[col].std()
+                new_df = df.loc[(df[col] <= upper_limit) & (df[col] >= lower_limit)]
+                
+        print(f"{len(df)} -> {len(new_df)}\nOutliers: {len(df)-len(new_df)}")
+        return new_df
+
+    def remove_outliers_iqr(self, df:pd.DataFrame):
+        #Interquartile Range Method
+        new_df = df.copy
+        for col in df:
+            if df[col].dtype not in ["category", "bool"]:
+                q1 = df[col].quantile(0.25)
+                q3 = df[col].quantile(0.75)
+                iqr = q3-q1
+                upper_limit = q3 + (1.5*iqr)
+                lower_limit = q1 - (1.5*iqr)
+                print(f"{col}: ({lower_limit} - {upper_limit})")
+                new_df = df.loc[(df[col] <= upper_limit) & (df[col] >= lower_limit)]
+
+        print(f"{len(df)} -> {len(new_df)}\nOutliers: {len(df)-len(new_df)}")
+        return new_df
+
+    def remove_outliers_percentile(self, df:pd.DataFrame, low:float=0.01, high:float=0.99):
+        new_df = df.copy()
+        for col in df:
+            if df[col].dtype not in ["category", "bool"]:
+                lower_limit = df[col].quantile(low)
+                upper_limit = df[col].quantile(high)
+                print(f"{col}: ({lower_limit} - {upper_limit})")
+                new_df = df.loc[(df[col] <= upper_limit) & (df[col] >= lower_limit)]
+
+        print(f"{len(df)} -> {len(new_df)}\nOutliers: {len(df)-len(new_df)}")
+        return new_df
+
+
 
 class Plotter:
     def null(self, df:pd.DataFrame, comparison_df:pd.DataFrame=None):
@@ -368,15 +406,21 @@ class Plotter:
             msno.bar(df, ax=axes[1], color="green")
         plt.show()
         
-        
     def distribution(self, df:pd.DataFrame):  # TODO add comparison to original data
         fig = plt.figure(figsize=(30, 30))
         for col in df:
             if df[col].dtype not in ["category", "datetime64[ns]", "bool"]:
-                sns.displot(df[col], color="green")
+                sns.displot(df[col].astype(int), color="green", kde=True)
+                sns.despine()
+                plt.title(col)
                 plt.show()
 
-
+    def box(self, df:pd.DataFrame):
+        plt.figure(figsize=(10, 5))
+        sns.boxplot(data=df, x=column)
+        plt.title(column)
+        plt.show()
+    
 if __name__ == "__main__":
     df = db_utils.df_from_csv()
 
@@ -401,7 +445,6 @@ if __name__ == "__main__":
 
     # 3. Remove / impute data
     df_transform = DataFrameTransform()
-    original_df = df.copy()
     
     df = df_transform.fill_zero_columns(df, ["funded_amount"])
     df = df_transform.impute_mean_columns(df, ["collections_12_mths_ex_med"])
@@ -409,12 +452,21 @@ if __name__ == "__main__":
     df = df_transform.drop_rows(df, ["term", "int_rate", "employment_length"])
     df = df_transform.drop_columns(df)
     
-    # 4. Transform skewed data
+    # 4. Transform skewed data 
+    # TODO actually fix skews
     plot = Plotter()
-    df = df_transform.fix_skews(df)
+    original_df = df.copy()
+
+    # plot.null(df)
     
-    # plot.null(df, original_df)
 
-    plot.distribution(df)
+    # df = df_transform.fix_skews(df)
+    # plot.null(df)
+    
 
+    # 5. Dealing with outliers
+    # plot.distribution(df)
+    df = df_transform.remove_outliers_iqr(df)
+
+    
 
