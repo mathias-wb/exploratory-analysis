@@ -303,7 +303,7 @@ class DataFrameInfo:
     def get_skews(self, df:pd.DataFrame, sig_figures:int=2):
         output = f"=== Skews ===\n"
         for col in df:
-            if df[col].dtype in ["Int64", "float64"]:
+            if df[col].dtype in ["Int64", "int64", "float64"]:
                 output += f"[{col}] : {self.get_skew(df, col)}\n"
         print(output[:-1])
 
@@ -321,7 +321,8 @@ class DataFrameTransform:
 
     def fill_zero_columns(self, df:pd.DataFrame, columns:list):
         for col in columns:
-            df[col] = df[col].fillna(0)
+            if df[col].dtype not in ["category"]:
+                df[col] = df[col].fillna(0)
         return df
 
     def impute_median_columns(self, df:pd.DataFrame, columns:list):
@@ -343,7 +344,7 @@ class DataFrameTransform:
         """Fixes skewed columns by applyin Log, Box-Cox or Yeo-Johnson transformation.
         """
         for col in df:
-            if df[col].dtype not in ["category", "datetime64[ns]", "bool"]:
+            if df[col].dtype in ["Int64", "int64", "float64"]:
                 if -0.5 < skew(df[col].astype("float64")) > 0.5:  # a common skew threshold to filter in the skewed columns
                     log = df[col].map(lambda x: np.log(x) if x > 0 else 0)
                     if df[col].all() > 0:
@@ -375,7 +376,6 @@ class DataFrameTransform:
                 iqr = q3-q1
                 upper_limit = q3 + (1.5*iqr)
                 lower_limit = q1 - (1.5*iqr)
-                print(f"{col}: ({lower_limit} - {upper_limit})")
                 new_df = df.loc[(df[col] <= upper_limit) & (df[col] >= lower_limit)]
 
         print(f"{len(df)} -> {len(new_df)}\nOutliers: {len(df)-len(new_df)}")
@@ -387,7 +387,6 @@ class DataFrameTransform:
             if df[col].dtype not in ["category", "bool"]:
                 lower_limit = df[col].quantile(low)
                 upper_limit = df[col].quantile(high)
-                print(f"{col}: ({lower_limit} - {upper_limit})")
                 new_df = df.loc[(df[col] <= upper_limit) & (df[col] >= lower_limit)]
 
         print(f"{len(df)} -> {len(new_df)}\nOutliers: {len(df)-len(new_df)}")
@@ -398,7 +397,7 @@ class DataFrameTransform:
 class Plotter:
     def null(self, df:pd.DataFrame, comparison_df:pd.DataFrame=None):
         if comparison_df is None:
-            fig = plt.figure(figsize=(30, 30))
+            plt.figure(figsize=(30, 30))
             msno.bar(df, color="green")
         else:
             fig, axes = plt.subplots(2, 1, figsize=(50, 50))
@@ -407,18 +406,29 @@ class Plotter:
         plt.show()
         
     def distribution(self, df:pd.DataFrame):  # TODO add comparison to original data
-        fig = plt.figure(figsize=(30, 30))
-        for col in df:
-            if df[col].dtype not in ["category", "datetime64[ns]", "bool"]:
-                sns.displot(df[col].astype(int), color="green", kde=True)
-                sns.despine()
-                plt.title(col)
-                plt.show()
+        fig, axes = plt.subplots(7,4,figsize=(20, 15))
+        ax = axes.flatten()
+        counter = 0
+        for i, col in enumerate(df.columns):
+            if df[col].dtype in ["Int64", "int64", "float64"]:
+                sns.histplot(df[col].astype(int), ax=ax[i-counter], color="green", kde=True)
+                ax[i-counter].set_title(col)
+                ax[i-counter].ticklabel_format(style='plain', axis='both')
+            else:
+                counter += 1
+        fig.tight_layout(w_pad=4, h_pad=2)      
+        plt.show()
 
     def box(self, df:pd.DataFrame):
         plt.figure(figsize=(10, 5))
         sns.boxplot(data=df, x=column)
         plt.title(column)
+        plt.show()
+
+    def correlation(self, df:pd.DataFrame):
+        plt.figure(figsize=(20,15))
+        corr = df.select_dtypes("number").corr()
+        sns.heatmap(corr)
         plt.show()
     
 if __name__ == "__main__":
@@ -453,20 +463,17 @@ if __name__ == "__main__":
     df = df_transform.drop_columns(df)
     
     # 4. Transform skewed data 
-    # TODO actually fix skews
     plot = Plotter()
     original_df = df.copy()
-
-    # plot.null(df)
-    
-
-    # df = df_transform.fix_skews(df)
-    # plot.null(df)
-    
+    df_transform.fix_skews(df)
 
     # 5. Dealing with outliers
-    # plot.distribution(df)
     df = df_transform.remove_outliers_iqr(df)
+    plot.distribution(df)
+    
+    # 6. Dealing with correlation
+    plot.correlation(df)
+    
 
     
 
