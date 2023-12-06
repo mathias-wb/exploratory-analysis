@@ -15,66 +15,52 @@ pd.set_option("display.max_rows", None)
 # === Step 1. Transforming Data ===
 
 class DataTransform:
+    """This class is used to transform the data into a format that is more suitable for analysis.
     """
-    This class is used to transform the data into a format that is more suitable for analysis.
-    
-    Attributes
-    ----------
-    df : pandas.DataFrame
-        The dataframe to be transformed.
-    """
-    def __init__(self, dataframe):
+    def remove_excess(self, df:pd.DataFrame):
+        """Cleans data within columns that require specific cleaning.
         """
-        Initializes the DataTransform class.        
+        df["sub_grade"] = df["sub_grade"].apply(lambda x: x[1:]).astype("Int64")  # Removes repeated data from "grade" in "sub_grade".
+        df["term"] = df["term"].str.replace(" months", "").astype("Int64")  # Removes characters aside from numbers in "term".
+        df["verification_status"] = df["verification_status"] != "Not Verified"  # Simplifies "verification_status" to boolean.
+        return df
 
-        Paramaters
-        ----------
-        dataframe : pandas.DataFrame
-            The dataframe to be transformed.
+    def convert_column_formats(self, df: pd.DataFrame):
+        """Converts columns to the appropriate data type by calling other functions.
         """
-        self.df = dataframe
-        self.remove_excess()
-        self.convert_to_datetime()
-        self.convert_to_bool()
-        self.convert_to_category()
-        self.convert_to_int()
+        df = self.convert_to_category(df)
+        df = self.convert_to_datetime(df)
+        df = self.convert_to_int(df)
+        df = self.convert_to_bool(df)
+        return df
 
-    def remove_excess(self):
+    def convert_to_int(self, df:pd.DataFrame):
+        """Converts columns that had whole float values to integers.
         """
-        Cleans data within columns that require specific cleaning.
-        """
-        self.df["sub_grade"] = self.df["sub_grade"].apply(lambda x: x[1:])
-        self.df["term"] = self.df["term"].str.replace(" months", "").astype("Int64")
-        self.df["verification_status"] = self.df["verification_status"] != "Not Verified"
+        for col in df:
+            if df[col].dtype in ["float64", "int64"]:
+                if (df[col].fillna(0) % 1 == 0).all():
+                    df[col] = df[col].astype("Int64")
+        return df
 
-    def convert_to_int(self, dataframe=None):
-        """
-        Converts columns that had unnecessary float values to integers.
-        """
-        if dataframe is None:
-            for col in ["sub_grade", "loan_amount", "funded_amount", "mths_since_last_delinq", "mths_since_last_record", "collections_12_mths_ex_med", "mths_since_last_major_derog"]:
-                self.df[col] = pd.to_numeric(self.df[col], errors="coerce").astype("Int64")
-                return self.df
-        else:
-            for col in ["sub_grade", "loan_amount", "funded_amount", "mths_since_last_delinq", "mths_since_last_record", "collections_12_mths_ex_med", "mths_since_last_major_derog"]:
-                dataframe[col] = pd.to_numeric(dataframe[col], errors="coerce").astype("Int64")
-                return dataframe
-
-    def convert_to_category(self):
+    def convert_to_category(self, df:pd.DataFrame):
         """
         Converts columns that have <20 values to categories.
         """
-        for col in self.df:
-            if self.df[col].nunique() < 20 and self.df[col].dtype not in ["bool", "int64", "Int64", "float64", "datetime64[ns]"]:
-                self.df[col] = self.df[col].astype("category")
+        for col in df:
+            if df[col].nunique() < 20 and df[col].dtype not in ["bool", "Int64", "float64", "datetime64[ns]"]:
+                df[col] = df[col].astype("category")
+        return df
 
-    def convert_to_datetime(self):
+    def convert_to_datetime(self, df:pd.DataFrame):
         for col in ["issue_date","last_payment_date", "next_payment_date", "last_credit_pull_date", "earliest_credit_line"]:
-            self.df[col] = pd.to_datetime(self.df[col], format="%b-%Y", errors="coerce")
+            df[col] = pd.to_datetime(df[col], format="%b-%Y", errors="coerce")
+        return df
 
-    def convert_to_bool(self):
-        self.df["payment_plan"] = self.df["payment_plan"] == "y"
-        self.df["policy_code"] = self.df["policy_code"] == 1
+    def convert_to_bool(self, df:pd.DataFrame):
+        df["payment_plan"] = df["payment_plan"] == "y"
+        df["policy_code"] = df["policy_code"] == 1
+        return df
 
 
 # === Step 2. Get Information ===
@@ -160,7 +146,6 @@ class DataFrameInfo:
 
     def get_skew(self, column=None, sig_figures=2):
         if column is None:
-            output = f"=== Skew ===\n"
             for col in self.df:
                 if self.df[col].dtype not in ["category", "datetime64[ns]", "bool"]:
                     output += f"[{col}] : {round(skew(self.df[col]), sig_figures)}\n"
@@ -270,13 +255,9 @@ class Plotter:
         
 
 df = db_utils.df_from_csv()
-dt = DataTransform(df)
-dft = DataFrameTransform(dt.df)
 
-dfi = DataFrameInfo(df)
-dfti = DataFrameInfo(dft.df)
-
-plot_df = Plotter(dft.df)
-plot_df.distribution()
-
+# 1. Convert column format.
+df = DataTransform().remove_excess(df)
+df = DataTransform().convert_column_formats(df)
+df.info()
 # ===
