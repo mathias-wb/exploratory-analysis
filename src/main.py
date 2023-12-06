@@ -15,27 +15,54 @@ pd.set_option("display.max_rows", None)
 # === Step 1. Transforming Data ===
 
 class DataTransform:
-    """This class is used to transform the data into a format that is more suitable for analysis.
+    """This class is used to convert data into formats that are more 
+    suitable for analysis.
     """
-    def remove_excess(self, df:pd.DataFrame):
+    def remove_excess(self, df:pd.DataFrame) -> pd.DataFrame:
         """Cleans data within columns that require specific cleaning.
+
+        Parameters
+        ----------
+        df `pd.DataFrame` - 
+            The dataframe to be cleaned.
+
+        Returns
+        -------
+        `pd.DataFrame` -
+            The cleaned dataframe.
         """
         df["sub_grade"] = df["sub_grade"].apply(lambda x: x[1:]).astype("Int64")  # Removes repeated data from "grade" in "sub_grade".
         df["term"] = df["term"].str.replace(" months", "").astype("Int64")  # Removes characters aside from numbers in "term".
         df["verification_status"] = df["verification_status"] != "Not Verified"  # Simplifies "verification_status" to boolean.
         return df
 
-    def convert_column_formats(self, df: pd.DataFrame):
-        """Converts columns to the appropriate data type by calling other functions.
+    def convert_column_formats(self, df: pd.DataFrame) -> pd.DataFrame:
+        """Converts columns to the appropriate data type by calling 
+        other functions.
+
+        Parameters
+        ----------
+        df `pd.DataFrame` - 
+            The dataframe with columns to be converted.
         """
+        df = self.convert_to_bool(df)
         df = self.convert_to_category(df)
         df = self.convert_to_datetime(df)
         df = self.convert_to_int(df)
-        df = self.convert_to_bool(df)
         return df
 
-    def convert_to_int(self, df:pd.DataFrame):
-        """Converts columns that had whole float values to integers.
+    def convert_to_int(self, df:pd.DataFrame) -> pd.DataFrame:
+        """ Converts columns that had whole float values to integers.
+
+        Parameters
+        ----------
+        df `pd.DataFrame` -
+            The dataframe with columns to be converted.
+
+        Returns
+        -------
+        `pd.DataFrame` -
+            The dataframe with columns converted to integers.
         """
         for col in df:
             if df[col].dtype in ["float64", "int64"]:
@@ -43,106 +70,229 @@ class DataTransform:
                     df[col] = df[col].astype("Int64")
         return df
 
-    def convert_to_category(self, df:pd.DataFrame):
-        """
-        Converts columns that have <20 values to categories.
+    def convert_to_category(self, df:pd.DataFrame) -> pd.DataFrame:
+        """ Converts columns that have <20 values to categories.
+
+        Parameters
+        ----------
+        df `pd.DataFrame` -
+            The dataframe with columns to be converted.
+
+        Returns
+        -------
+        `pd.DataFrame` -
+            The dataframe with columns converted to categories.
         """
         for col in df:
-            if df[col].nunique() < 20 and df[col].dtype not in ["bool", "Int64", "float64", "datetime64[ns]"]:
+            if df[col].nunique() < 20 and df[col].dtype not in ["bool", "Int64","float64", "datetime64[ns]"]:
                 df[col] = df[col].astype("category")
         return df
 
-    def convert_to_datetime(self, df:pd.DataFrame):
-        for col in ["issue_date","last_payment_date", "next_payment_date", "last_credit_pull_date", "earliest_credit_line"]:
-            df[col] = pd.to_datetime(df[col], format="%b-%Y", errors="coerce")
+    def convert_to_datetime(self, df:pd.DataFrame) -> pd.DataFrame:
+        """ Converts columns that have dates to datetime64[ns].
+
+        Parameters
+        ----------
+        df `pd.DataFrame` -
+            The dataframe with columns to be converted.
+
+        Returns
+        -------
+        `pd.DataFrame` -
+            The dataframe with columns converted to datetime64[ns].
+        """
+        for col in df:
+            try:
+                df[col] = pd.to_datetime(df[col], format="%b-%Y")
+            except TypeError:
+                pass
+            except ValueError:
+                pass
         return df
 
-    def convert_to_bool(self, df:pd.DataFrame):
+    def convert_to_bool(self, df:pd.DataFrame) -> pd.DataFrame:  # NOTE Could change this in the future, but not necessary right now.
+        """ Converts columns that have up to 2 values to boolean.
+
+        Parameters
+        ----------
+        df `pd.DataFrame` -
+            The dataframe with columns to be converted.
+        
+        Returns
+        -------
+        `pd.DataFrame` -
+            The dataframe with columns converted to boolean.
+        """
         df["payment_plan"] = df["payment_plan"] == "y"
         df["policy_code"] = df["policy_code"] == 1
         return df
 
-
 # === Step 2. Get Information ===
 
 class DataFrameInfo:
-    def __init__(self, dataframe):
-        self.df = dataframe
+    """This class is used to get information about the dataframe.
+    """
+    def get_shape(self, df:pd.DataFrame) -> tuple:
+        """Returns the shape of the dataframe.
 
-    def get_datatypes(self):
-        return self.df.dtypes
+        Parameters
+        ----------
+        df `pd.DataFrame` -
+            The dataframe to get the shape of.
 
-    def get_median(self, column=None):
-        if column is None:
-            output = f"=== Median ===\n"
-            for col in self.df:
-                output += f"{col}: {self.get_median(col)}\n"
-            return output[:-1]
-        elif self.df[column].dtype not in ["category"]:
-            return self.df[column].median()
+        Returns
+        -------
+        `tuple` -
+            The shape of the dataframe.
+        """
+        return df.shape
+
+    def get_datatype(self, df:pd.DataFrame, column:str) -> str:
+        """Returns the data type of the column in the dataframe.
+
+        Parameters
+        ----------
+        df `pd.DataFrame` -
+             The dataframe to get the data type of the column from.
+        
+        column `str` -
+            The column to get the data type of.
+
+        Returns
+        -------
+        `str` -
+            The data type of the column in the dataframe.
+        """
+        return df[column].dtype
+
+    def get_datatypes(self, df:pd.DataFrame) -> pd.Series:
+        """Returns the data types of the columns in the dataframe.
+
+        Parameters
+        ----------
+        df `pd.DataFrame` -
+            The dataframe to get the data types of the columns from.
+
+        Returns
+        -------
+        `pd.Series` -
+            The data types of the columns in the dataframe.
+        """
+        return df.dtypes
+
+    def get_median(self, df:pd.DataFrame, column:str) -> int | float | datetime64[ns] | None:
+        """Returns the median of the column in the dataframe.
+
+        Parameters
+        ----------
+        df `pd.DataFrame` -
+            The dataframe to get the median of the column from.
+
+        column `str` -
+            The column to get the median of.
+        
+        Returns
+        -------
+        `int` | `float` | `datetime64[ns]` | `None` - 
+            The median value of the column in the dataframe.
+        """
+        if df[column].dtype not in ["category"]:
+            return df[column].median()
         else:
             return None
 
-    def get_mean(self, column=None, sig_figures=2):
-        if column is None:
-            output = f"=== Mean ===\n"
-            for col in self.df:
-                output += f"{col}: {self.get_mean(col)}\n"
-            return output[:-1]
-        elif self.df[column].dtype not in ["category", "datetime64[ns]", "bool"]:
-            return round(self.df[column].mean(), sig_figures)
-        elif self.df[column].dtype != "category":
-            self.df[column].mean()
+    def get_medians(self, df:pd.DataFrame):
+        """Prints the medians of all columns in the dataframe.
+
+        Parameters
+        ----------
+        df `pd.DataFrame` -
+            The dataframe to get the medians of the columns from.
+        """
+        output = f"=== Medians ===\n"
+        for col in df:
+            output += f"{col}: {get_median(df, col)}\n"
+        print(output[:-1])
+
+    def get_mean(self, df:pd.DataFrame, column:str, sig_figures:int=2) -> int | float | datetime64[ns] | bool | None:
+        """Returns the mean of the column in the dataframe.
+
+        Parameters
+        ----------
+        df `pd.DataFrame` -
+            The dataframe to get the mean of the column from.
+
+        column `str` -
+            The column to get the mean of.
+        
+        sig_figures `int` -
+            The number of significant figures to round to.
+        
+        Returns
+        -------
+        `int` | `float` | `datetime64[ns]` | `bool` | `None` -
+            The mean value of the column in the dataframe.
+        """
+        if df[column].dtype not in ["category", "datetime64[ns]", "bool"]:
+            return round(df[column].mean(), sig_figures)
+        elif df[column].dtype != "category":
+            df[column].mean()
         else:
             return None
 
-    def get_mode(self, column=None):
-        if column is None:
-            output = f"=== Mode ===\n"
-            for col in self.df:
-                output += f"{col}: {self.get_mode(col)}\n"
-            return output[:-1]
-        else:
-            return list(self.df[column].mode().head(5))
+    def get_means(self, df:pd.DataFrame):
+        output = f"=== Means ===\n"
+        for col in df:
+            output += f"{col}: {self.get_mean(df, col)}\n"
+        print(output[:-1])
+    
+    def get_mode(self, df:pd.DataFrame, column:str, max_values:int=5):
+            return list(df[column].mode().head(max_values))
 
-    def get_standard_deviation(self, column=None, sig_figures=2):
-        if column is None:
-            output = f"=== Standard Deviation ===\n"
-            for col in self.df:
-                if self.df[column].dtype == "category":
-                    output += f"{col}: {self.get_standard_deviation(col)}\n"
-            return output[:-1]
-        elif self.df[column].dtype not in ["category", "datetime64[ns]", "bool"]:
-            return round(self.df[column].std(), sig_figures)
-        elif self.df[column].dtype != "category":
-            self.df[column].std()
-        else:
-            return None
+    def get_modes(self, df:pd.DataFrame):
+        output = f"=== Modes ===\n"
+        for col in df:
+            output += f"{col}: {self.get_mode(df, col)}\n"
+        print(output[:-1])
 
-    def get_distinct(self, column=None):
-        if column is None:
-            output = f"=== Unique Values ===\n"
-            for col in self.df:
-                if self.df[col].dtype == "category":
-                    output += f"{col}: {self.df[col].nunique()} {list(self.df[col].unique())}\n"
-            return output[:-1]
-        elif self.df[column].dtype == "category":
-            return self.df[column].nunique()
+    def get_standard_deviation(self, df:pd.DataFrame, column:str, sig_figures:int=2):
+        if df[column].dtype not in ["category", "datetime64[ns]", "bool"]:
+            return round(df[column].std(), sig_figures)
+        elif df[column].dtype != "category":
+            df[column].std()
         else:
             return None
 
-    def get_shape(self):
-        return self.df.shape
+    def get_standard_deviations(self, df:pd.DataFrame):
+        output = f"=== Standard Deviations ===\n"
+        for col in df:
+            if df[column].dtype == "category":
+                output += f"{col}: {self.get_standard_deviation(df, col)}\n"
+        return output[:-1]
+
+    def get_distinct(self, df:pd.DataFrame, column:str):
+        return df[column].nunique()
+
+    def get_distincts(self, df:pd.DataFrame):
+        output = f"=== Unique Values ===\n"
+        for col in df:
+            output += f"{col}: {self.get_distinct(df, col)} {list(df[col].unique())}\n"
+        print(output[:-1])
+
+    
+
+    def get_null(self, df:pd.DataFrame, column:str, sig_figures:int=2):
+        return (sum(self.df[column].isna()), 
+            round(sum(self.df[column].isna()) * 100 / self.get_shape()[0], sig_figures))
 
     def get_nulls(self, column=None, sig_figures=2):
-        if column is None:
-            output = f"=== Null Values ===\n"
-            for col in self.df:
-                if sum(self.df[col].isna()) != 0:
-                    output += f"{col}: {sum(self.df[col].isna())} ({round(sum(self.df[col].isna()) * 100 / self.get_shape()[0], sig_figures)}%)\n"
-            return output[:-1]
+        output = f"=== Null Values ===\n"
+        for col in self.df:
+            if sum(self.df[col].isna()) != 0:
+                output += f"{col}: {sum(self.df[col].isna())} ({round(sum(self.df[col].isna()) * 100 / self.get_shape()[0], sig_figures)}%)\n"
+        return output[:-1]
         else:
-            return f"{sum(self.df[column].isna())} ({round(sum(self.df[column].isna()) * 100 / self.get_shape()[0], sig_figures)}%)"
+            
 
     def get_skew(self, column=None, sig_figures=2):
         if column is None:
@@ -164,13 +314,8 @@ class DataFrameInfo:
 
 class DataFrameTransform:
     """Initializes DataFrameTransform with a dataframe.
-    
-    Attributes
-    ----------
-    dataframe : (pandas.DataFrame)
-        The dataframe to transform.
     """
-    def __init__(self, dataframe):
+    def __init__(self):
         self.df = dataframe
         self.original_df = dataframe.copy()
 
@@ -259,5 +404,5 @@ df = db_utils.df_from_csv()
 # 1. Convert column format.
 df = DataTransform().remove_excess(df)
 df = DataTransform().convert_column_formats(df)
-df.info()
+
 # ===
