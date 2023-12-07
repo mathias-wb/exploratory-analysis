@@ -307,6 +307,15 @@ class DataFrameInfo:
                 output += f"[{col}] : {self.get_skew(df, col)}\n"
         print(output[:-1])
 
+    def get_correlations(self, df:pd.DataFrame, sig_figures:int=2):
+        pd.set_option("display.max_rows", None)
+        correlations = df.select_dtypes("number").corr().abs()
+        series = correlations.unstack()
+        ordered_series = series.sort_values(ascending=False)
+        display(ordered_series)
+        pd.set_option("display.max_rows", 10)
+
+
 
 class DataFrameTransform:
     """Initializes DataFrameTransform with a dataframe.
@@ -406,6 +415,8 @@ class Plotter:
         plt.show()
         
     def distribution(self, df:pd.DataFrame):  # TODO add comparison to original data
+        # factors = closest_factors(len(df.select_dtypes(include=np.number).columns.tolist()))
+        # print(factors)
         fig, axes = plt.subplots(7,4,figsize=(20, 15))
         ax = axes.flatten()
         counter = 0
@@ -430,6 +441,15 @@ class Plotter:
         corr = df.select_dtypes("number").corr()
         sns.heatmap(corr)
         plt.show()
+
+def closest_factors(n):
+   i = int(n ** 0.5)
+   while i > 1:
+       if n % i == 0:
+           return [i, n // i]
+       i -= 1
+   return [1, n]
+
     
 if __name__ == "__main__":
     df = db_utils.df_from_csv()
@@ -465,15 +485,27 @@ if __name__ == "__main__":
     # 4. Transform skewed data 
     plot = Plotter()
     original_df = df.copy()
-    df_transform.fix_skews(df)
+    # df_transform.fix_skews(df) # FIXME unsure about quality of transformation of skews
 
     # 5. Dealing with outliers
     df = df_transform.remove_outliers_iqr(df)
-    plot.distribution(df)
+    # plot.distribution(df)
     
     # 6. Dealing with correlation
-    plot.correlation(df)
-    
+    # df_info.get_correlations(df)
+    # plot.correlation(df)
+    df = df.drop(["out_prncp_inv", "member_id", "total_payment_inv", 
+        "total_rec_prncp", "instalment", "collection_recovery_fee"], axis=1)
+    # All these columns were above 0.9 in terms of correlation.
+    # plot.correlation(df)
 
     
+
+
+    # === Analysis ===
+
+    # 1. Summarise what percentage of the loans are recovered against the 
+    # investor funding and the total amount funded. 
+    # Visualise your results on an appropriate graph.
+
 
