@@ -324,7 +324,7 @@ class DataFrameTransform:
         """Drops columns from the dataframe with more nulls than the threshold percentage.
         """
         for col in df:
-            if DataFrameInfo().get_null(df, col)[1] >= threshold:
+            if DataFrameInfo().get_null(df, col)[1] >= threshold and col not in ["next_payment_date"]: # next_payment_date will be useful for future analyis
                 df = df.drop(col, axis=1)
         return df
 

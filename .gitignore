@@ -1,4 +1,4 @@
 # Folders
 /__pycache__
 /.vscode
-src/__pycache__
+/src/__pycache__

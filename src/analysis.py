@@ -1,3 +1,5 @@
+from datetime import datetime
+
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
@@ -11,14 +13,8 @@ import db_utils, cleaning
 def percentage_of_loans_recovered(df: pd.DataFrame):
         total_funded = df["funded_amount"].sum()
         total_recovered = df["total_payment"].sum()
-
         total_funded_inv = df["funded_amount_inv"].sum()
         total_recovered_inv = df["total_payment_inv"].sum()
-
-        # Columns:
-        # loan_amount : Amount of loan the applicant received
-        # funded_amount : The total amount committed to the loan at the point in time
-        # funded_amount_inv : The total amount committed by investors for that loan at that point in time
 
         percent_recovered_total = (total_recovered / total_funded) * 100
         percent_recovered_inv = (total_recovered_inv / total_funded_inv) * 100
@@ -43,6 +39,13 @@ def percentage_of_loans_recovered(df: pd.DataFrame):
         plt.show()
 
 
+#1. (cont.) Additionally visualise what percentage of the total amount 
+# would be recovered up to 6 months' in the future.
+def percentage_of_loans_recovered_in_6_months(df: pd.DataFrame):
+    pass
+
+
 df = cleaning.clean_data(db_utils.df_from_csv("loans.csv"))
 
 percentage_of_loans_recovered(df)
+display(df)

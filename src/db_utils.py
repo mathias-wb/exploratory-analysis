@@ -150,9 +150,9 @@ def df_from_csv(filename="loans.csv") -> pd.DataFrame:
 if __name__ == "__main__":
     # The commented code below gets the data from the AWS database and converts it into a .csv file.
 
-    db = RDSDatabaseConnector("postgresql")
+    # db = RDSDatabaseConnector("postgresql") # BUG make sure this works
     # db.query("SELECT * FROM loan_payments;")
-    db.create_csv("SELECT * FROM loan_payments;")
+    # db.create_csv("SELECT * FROM loan_payments;")
 
     df = df_from_csv()
     display(df)
