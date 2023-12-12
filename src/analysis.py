@@ -66,8 +66,16 @@ def percentage_of_loan_recovery(df: pd.DataFrame) -> None:
     plt.legend()
     plt.show()
 
+def percentage_loss(df: pd.DataFrame):
+    df["loss"] = df["loan_status"] == "Charged Off"
+    percent_charged_off = round(((sum(df["loss"] == True) / df.shape[0]) * 100), 2)
+    amount_lost = sum(np.where(df["loss"] == True, df["loan_amount"], 0))
+    print(f"{percent_charged_off}% of loans were charged off.\nTotal amount lost: £{amount_lost}")
+
 
 
 df = cleaning.clean_data(db_utils.df_from_csv("loans.csv"))
 
-percentage_of_loan_recovery(df)
+
+# percentage_of_loan_recovery(df)
+# percentage_loss(df)
