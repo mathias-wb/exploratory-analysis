@@ -349,8 +349,8 @@ class DataFrameTransform:
             df = df[~df[col].isna()]
         return df
 
-    def fix_skews(self, df:pd.DataFrame):
-        """Fixes skewed columns by applyin Log, Box-Cox or Yeo-Johnson transformation.
+    def fix_skews(self, df:pd.DataFrame): # FIXME implement new transformation method
+        """Fixes skewed columns by applying Log, Box-Cox or Yeo-Johnson transformation.
         """
         for col in df:
             if df[col].dtype in ["Int64", "int64", "float64"]:
@@ -415,8 +415,6 @@ class Plotter:
         plt.show()
         
     def distribution(self, df:pd.DataFrame):  # TODO add comparison to original data
-        # factors = closest_factors(len(df.select_dtypes(include=np.number).columns.tolist()))
-        # print(factors)
         fig, axes = plt.subplots(7,4,figsize=(20, 15))
         ax = axes.flatten()
         counter = 0
@@ -442,13 +440,43 @@ class Plotter:
         sns.heatmap(corr)
         plt.show()
 
-def closest_factors(n):
-   i = int(n ** 0.5)
-   while i > 1:
-       if n % i == 0:
-           return [i, n // i]
-       i -= 1
-   return [1, n]
+# 1. Summarise what percentage of the loans are recovered against the 
+# investor funding and the total amount funded. 
+# Visualise your results on an appropriate graph.
+def percentage_of_loans_recovered():
+        total_funded = df["funded_amount"].sum()
+        total_recovered = df["total_payment"].sum()
+
+        total_funded_inv = df["funded_amount_inv"].sum()
+        total_recovered_inv = df["total_payment_inv"].sum()
+
+        # Columns:
+        # loan_amount : Amount of loan the applicant received
+        # funded_amount : The total amount committed to the loan at the point in time
+        # funded_amount_inv : The total amount committed by investors for that loan at that point in time
+
+        percent_recovered_total = (total_recovered / total_funded) * 100
+        percent_recovered_inv = (total_recovered_inv / total_funded_inv) * 100
+        
+        data = {
+            "Category": ["Against\nTotal Funding", "Against\nInvestor Funding"],
+            "Percentage Recovered": [percent_recovered_total, percent_recovered_inv]
+        }
+        df_loan_summary = pd.DataFrame(data)
+
+        sns.set_theme(style="whitegrid", font="JetBrains Mono")
+        plt.figure(figsize=(5,6))
+        ax = sns.barplot(data=df_loan_summary, x="Category", y="Percentage Recovered")
+        plt.title("Percentage of Loans Recovered")
+        plt.ylabel("Percentage (%)")
+        plt.ylim([0,100])
+        plt.xlabel(None)
+        
+        for bar in ax.patches: # placing percentage text on bars
+            ax.annotate(f'{round(bar.get_height(), 2)}%', (bar.get_x() + bar.get_width() / 2, bar.get_height()),
+                    ha="center", va='center', xytext=(0, -20), textcoords="offset points", color="white")
+        
+        plt.show()
 
     
 if __name__ == "__main__":
@@ -488,24 +516,19 @@ if __name__ == "__main__":
     # df_transform.fix_skews(df) # FIXME unsure about quality of transformation of skews
 
     # 5. Dealing with outliers
-    df = df_transform.remove_outliers_iqr(df)
+    # df = df_transform.remove_outliers_iqr(df)
     # plot.distribution(df)
     
     # 6. Dealing with correlation
     # df_info.get_correlations(df)
     # plot.correlation(df)
-    df = df.drop(["out_prncp_inv", "member_id", "total_payment_inv", 
-        "total_rec_prncp", "instalment", "collection_recovery_fee"], axis=1)
+    # df = df.drop(["out_prncp_inv", "member_id", "total_payment_inv", 
+    #     "total_rec_prncp", "instalment", "collection_recovery_fee"], axis=1)
     # All these columns were above 0.9 in terms of correlation.
     # plot.correlation(df)
 
-    
-
 
     # === Analysis ===
-
-    # 1. Summarise what percentage of the loans are recovered against the 
-    # investor funding and the total amount funded. 
-    # Visualise your results on an appropriate graph.
-
-
+    percentage_of_loans_recovered()
+    
+    
