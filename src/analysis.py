@@ -7,7 +7,7 @@ import seaborn as sns
 
 import math, db_utils, cleaning
 
-
+# 1.
 def percentage_of_loan_recovery(df: pd.DataFrame) -> None:
     """Calculates and visualizes percentage of loans recovered against total funding and investor funding.
 
@@ -66,16 +66,50 @@ def percentage_of_loan_recovery(df: pd.DataFrame) -> None:
     plt.legend()
     plt.show()
 
-def percentage_loss(df: pd.DataFrame):
+
+# 2.
+def percentage_loss(df: pd.DataFrame) -> None:
     df["loss"] = df["loan_status"] == "Charged Off"
     percent_charged_off = round(((sum(df["loss"] == True) / df.shape[0]) * 100), 2)
     amount_lost = sum(np.where(df["loss"] == True, df["loan_amount"], 0))
     print(f"{percent_charged_off}% of loans were charged off.\nTotal amount lost: £{amount_lost}")
 
 
+# 3. 
+def projected_loss(df: pd.DataFrame) -> None:
+    charged_off_loans = df[df["loan_status"] == "Charged Off"]
+    display(charged_off_loans)
+
+    projected_loss = charged_off_loans["funded_amount"].sum() - charged_off_loans["total_payment"].sum()
+    projected_loss_inv = charged_off_loans["funded_amount_inv"].sum() - charged_off_loans["total_payment_inv"].sum()
+    projected_loss_extra = charged_off_loans["collection_recovery_fee"].sum() - charged_off_loans["recoveries"].sum()
+    
+    data = {
+        "Category": ["Projected\nFunding Loss", "Projected Investor\nFunding Loss", "Other Loss"],
+        "Amount Lost": [projected_loss, projected_loss_inv, projected_loss_extra]
+    }
+
+    data = pd.DataFrame(data)
+
+    sns.set_theme(style="whitegrid", font="JetBrains Mono")
+    
+    plt.figure(figsize=(6, 6))
+    sns.barplot(data=data, x="Category", y="Amount Lost")
+    sns.barplot(data=data, x="Category", y="Amount Lost")
+    sns.barplot(data=data, x="Category", y="Amount Lost")
+
+    plt.axhline(y=0, color="red", linestyle="-", linewidth=1, label="Zero Line")
+
+    plt.xlabel(None)
+    plt.ylabel('Projected Loss (Currency)')
+    plt.title('Projected Loss for Charged Off Loans')
+
+    plt.legend()
+    plt.show()
+
 
 df = cleaning.clean_data(db_utils.df_from_csv("loans.csv"))
 
-
 # percentage_of_loan_recovery(df)
 # percentage_loss(df)
+projected_loss(df)
