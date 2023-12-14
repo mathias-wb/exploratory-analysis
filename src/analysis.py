@@ -8,7 +8,7 @@ import seaborn as sns
 import math, db_utils, cleaning
 
 # 1.
-def percentage_of_loan_recovery(df: pd.DataFrame) -> None:
+def get_percentage_of_loan_recovery(df: pd.DataFrame) -> None:
     """Calculates and visualizes percentage of loans recovered against total funding and investor funding.
 
     This function takes a pandas DataFrame containing loan data, calculates recovery percentages against total and investor funding, 
@@ -60,15 +60,15 @@ def percentage_of_loan_recovery(df: pd.DataFrame) -> None:
     # Write the percentage of the portion in the centre of the each stacked bar.
     for bar, label in zip(ax.patches, df_loan_summary["Percentage Recovered"]):
         height = bar.get_height() + bar.get_y()
-        ax.annotate(f'{round(label, 2)}%', (bar.get_x() + bar.get_width() / 2, (bar.get_y() + height) / 2),
-                    ha="center", va='center', xytext=(0, 0), textcoords="offset points", color="white")
+        ax.annotate(f"{round(label, 2)}%", (bar.get_x() + bar.get_width() / 2, (bar.get_y() + height) / 2),
+                    ha="center", va="center", xytext=(0, 0), textcoords="offset points", color="white")
     
     plt.legend()
     plt.show()
 
 
 # 2.
-def percentage_loss(df: pd.DataFrame) -> None:
+def get_percentage_loss(df: pd.DataFrame) -> None:
     df["loss"] = df["loan_status"] == "Charged Off"
     percent_charged_off = round(((sum(df["loss"] == True) / df.shape[0]) * 100), 2)
     amount_lost = sum(np.where(df["loss"] == True, df["loan_amount"], 0))
@@ -76,7 +76,7 @@ def percentage_loss(df: pd.DataFrame) -> None:
 
 
 # 3. 
-def projected_loss(df: pd.DataFrame) -> None:
+def get_projected_loss(df: pd.DataFrame) -> list:
     charged_off_loans = df[df["loan_status"] == "Charged Off"]
     display(charged_off_loans)
 
@@ -86,30 +86,57 @@ def projected_loss(df: pd.DataFrame) -> None:
     
     data = {
         "Category": ["Projected\nFunding Loss", "Projected Investor\nFunding Loss", "Other Loss"],
-        "Amount Lost": [projected_loss, projected_loss_inv, projected_loss_extra]
+        "Amount Lost": [round(projected_loss), round(projected_loss_inv), round(projected_loss_extra)]
     }
 
     data = pd.DataFrame(data)
 
     sns.set_theme(style="whitegrid", font="JetBrains Mono")
-    
+
     plt.figure(figsize=(6, 6))
     sns.barplot(data=data, x="Category", y="Amount Lost")
     sns.barplot(data=data, x="Category", y="Amount Lost")
     sns.barplot(data=data, x="Category", y="Amount Lost")
 
-    plt.axhline(y=0, color="red", linestyle="-", linewidth=1, label="Zero Line")
+    
 
     plt.xlabel(None)
-    plt.ylabel('Projected Loss (Currency)')
-    plt.title('Projected Loss for Charged Off Loans')
+    plt.ylabel("Projected Loss (Currency)")
+    plt.title("Projected Loss for Charged Off Loans")
+    plt.axhline(y=0, color="red", linestyle="-", linewidth=1)
 
-    plt.legend()
     plt.show()
 
+    return [projected_loss, projected_loss_inv, projected_loss_extra]
+
+# 4.
+def possible_loss(df: pd.DataFrame):
+    behind_customers = df[df["loan_status"].str.contains("Late")]
+    
+    percentage_behind = round((len(behind_customers) / len(df)) * 100, 2)
+    total_behind_customers = len(behind_customers)
+
+    projected_loss_df = behind_customers.copy()
+    projected_loss_df["loan_status"] = projected_loss_df["loan_status"].apply(lambda x: "Charged Off")
+    projected_losses = get_projected_loss(projected_loss_df)
+
+    print(f"Customers Behind: {total_behind_customers} ({percentage_behind}%)\n\
+Projected Loss: {round(projected_losses[0], 2)}, {round(projected_losses[1], 2)} (Investors), {round(projected_losses[2], 2)} (Other Losses)")
+
+    charged_off_customers = df[df["loan_status"] == "Charged Off"]
+    
+    behind_or_charged_off_customers = pd.concat([charged_off_customers, projected_loss_df], ignore_index=True, sort=False)
+    
+    percentage_behind_or_charged_off = round((len(behind_or_charged_off_customers) / len(df)) * 100, 2)
+    total_behind_or_charged_off_customers = len(behind_or_charged_off_customers)
+
+    projected_losses = get_projected_loss(behind_or_charged_off_customers)
+    print(f"Customers Behind or Charged Off: {total_behind_or_charged_off_customers} ({percentage_behind_or_charged_off}%)\n\
+Projected Loss: {round(projected_losses[0], 2)}, {round(projected_losses[1],2)} (Investors), {round(projected_losses[2], 2)} (Other Losses)")
 
 df = cleaning.clean_data(db_utils.df_from_csv("loans.csv"))
 
 # percentage_of_loan_recovery(df)
 # percentage_loss(df)
-projected_loss(df)
+# projected_loss(df)
+possible_loss(df)
