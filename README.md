@@ -31,9 +31,9 @@ Run `pip install -r requirements.txt` to install all required packages.
 
 The main scripts are:
 
-- `db_utils.py` - connects to the AWS RDS database and executes SQL queries
-- `data_processing.py` - cleans and transforms the raw data
-- `main.py` - performs exploratory data analysis and visualization 
+- `db_utils.py` - connects to the AWS RDS database and queries the database
+- `cleaning.py` - cleans and transforms the raw data
+- `analysis.py` - performs exploratory data analysis and visualization 
 
 Run `python eda.py` to generate analysis and plots from the data.
 
