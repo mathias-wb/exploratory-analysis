@@ -42,11 +42,15 @@ Run `python eda.py` to generate analysis and plots from the data.
     ├── data/ 
     │   └── loans.csv  
     ├── plots/
+    │   ├── Chart.png
+    │   └── Another Chart.png ...
     ├── src/
     │   ├── db_utils.py
-    │   ├── data_processing.py 
-    │   └── main.py
+    │   ├── cleaning.py 
+    │   └── analysis.py
     ├── credentials.yaml
+    ├── requirements.txt
+    ├── LICENSE.txt
     └── README.md
 
 ## License
