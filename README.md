@@ -54,7 +54,3 @@ Run `python analysis.py` to generate analysis and plots from the data.
     ├── requirements.txt
     ├── LICENSE.txt
     └── README.md
-
-## License
-
-[MIT](https://choosealicense.com/licenses/mit/)
