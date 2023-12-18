@@ -20,10 +20,12 @@ The following packages need to be installed:
 - pandas
 - numpy
 - matplotlib
+- missingno
+- scikit learn
 - seaborn
 - sqlalchemy
 - psycopg2
-- yaml
+- pyyaml
 
 Run `pip install -r requirements.txt` to install all required packages.
 
