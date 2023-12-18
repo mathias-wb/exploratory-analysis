@@ -20,10 +20,12 @@ The following packages need to be installed:
 - pandas
 - numpy
 - matplotlib
+- missingno
+- scikit learn
 - seaborn
 - sqlalchemy
 - psycopg2
-- yaml
+- pyyaml
 
 Run `pip install -r requirements.txt` to install all required packages.
 
@@ -31,22 +33,26 @@ Run `pip install -r requirements.txt` to install all required packages.
 
 The main scripts are:
 
-- `db_utils.py` - connects to the AWS RDS database and executes SQL queries
-- `data_processing.py` - cleans and transforms the raw data
-- `main.py` - performs exploratory data analysis and visualization 
+- `db_utils.py` - connects to the AWS RDS database and queries the database
+- `cleaning.py` - cleans and transforms the raw data
+- `analysis.py` - performs exploratory data analysis and visualization 
 
-Run `python eda.py` to generate analysis and plots from the data.
+Run `python analysis.py` to generate analysis and plots from the data.
 
 ## File Structure
     
     ├── data/ 
     │   └── loans.csv  
     ├── plots/
+    │   ├── Chart.png
+    │   └── Another Chart.png ...
     ├── src/
     │   ├── db_utils.py
-    │   ├── data_processing.py 
-    │   └── main.py
+    │   ├── cleaning.py 
+    │   └── analysis.py
     ├── credentials.yaml
+    ├── requirements.txt
+    ├── LICENSE.txt
     └── README.md
 
 ## License
