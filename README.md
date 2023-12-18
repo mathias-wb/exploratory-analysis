@@ -35,7 +35,7 @@ The main scripts are:
 - `cleaning.py` - cleans and transforms the raw data
 - `analysis.py` - performs exploratory data analysis and visualization 
 
-Run `python eda.py` to generate analysis and plots from the data.
+Run `python analysis.py` to generate analysis and plots from the data.
 
 ## File Structure
     
