@@ -1,4 +1,5 @@
 from datetime import datetime
+from scipy.stats import chi2_contingency
 
 import pandas as pd
 import numpy as np
@@ -78,7 +79,6 @@ def get_percentage_loss(df: pd.DataFrame) -> None:
 # 3. 
 def get_projected_loss(df: pd.DataFrame) -> list:
     charged_off_loans = df[df["loan_status"] == "Charged Off"]
-    display(charged_off_loans)
 
     projected_loss = charged_off_loans["funded_amount"].sum() - charged_off_loans["total_payment"].sum()
     projected_loss_inv = charged_off_loans["funded_amount_inv"].sum() - charged_off_loans["total_payment_inv"].sum()
@@ -110,7 +110,7 @@ def get_projected_loss(df: pd.DataFrame) -> list:
     return [projected_loss, projected_loss_inv, projected_loss_extra]
 
 # 4.
-def possible_loss(df: pd.DataFrame):
+def get_possible_loss(df: pd.DataFrame):
     behind_customers = df[df["loan_status"].str.contains("Late")]
     
     percentage_behind = round((len(behind_customers) / len(df)) * 100, 2)
@@ -134,9 +134,40 @@ Projected Loss: {round(projected_losses[0], 2)}, {round(projected_losses[1], 2)}
     print(f"Customers Behind or Charged Off: {total_behind_or_charged_off_customers} ({percentage_behind_or_charged_off}%)\n\
 Projected Loss: {round(projected_losses[0], 2)}, {round(projected_losses[1],2)} (Investors), {round(projected_losses[2], 2)} (Other Losses)")
 
-df = cleaning.clean_data(db_utils.df_from_csv("loans.csv"))
+#5.
+def get_indication_of_loss(df:pd.DataFrame):
+    df["not_paying"] = df["loan_status"].str.contains("Late|Charged Off")
+    print("=== grade ===")
+    grade_contingency_table = pd.crosstab(df["not_paying"], df["grade"])
+    interpret_X2_test(chi2_contingency(grade_contingency_table), 0.05)
+    print("=== purpose ===")
+    purpose_contingency_table = pd.crosstab(df["not_paying"], df["purpose"])
+    interpret_X2_test(chi2_contingency(purpose_contingency_table), 0.05)
+    print("=== home_ownership ===")
+    home_ownership_contingency_table = pd.crosstab(df["not_paying"], df["home_ownership"])
+    interpret_X2_test(chi2_contingency(home_ownership_contingency_table), 0.05)  
+    # Only a connection for "Charged Off", not "Late" with home_ownership
 
-# percentage_of_loan_recovery(df)
-# percentage_loss(df)
-# projected_loss(df)
-possible_loss(df)
+
+
+def interpret_X2_test(result, significance:float):
+    print(f"Chi2 statistic:     {result.statistic:.5g}")
+    print(f"P-value:            {result.pvalue:.5g}")
+    print(f"Degrees of Freedom: {result.dof}")
+    if result.pvalue <= significance:
+        print(f"Reject H0, there is a connection at {significance}% significance!")
+        return True
+    else:
+        print(f"Failed to reject H0, there isn't a connection at {significance}% significance")
+        return False
+    
+
+
+if __name__ == "__main__":
+    df = cleaning.clean_data(db_utils.df_from_csv("loans.csv"))
+
+    get_percentage_of_loan_recovery(df)
+    get_percentage_loss(df)
+    get_projected_loss(df)
+    get_possible_loss(df)
+    get_indication_of_loss(df)
