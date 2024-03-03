@@ -59,5 +59,5 @@ Run `python analysis.py` to generate analysis and plots from the data.
 ![Null Values](https://github.com/mathias-wb/exploratory-analysis/blob/master/plots/Null%20Values%20(Before%20and%20After%20Handling).png)
 ### Correlation Heatmap
 ![Correlation](https://github.com/mathias-wb/exploratory-analysis/blob/master/plots/Correlation.png)
-### Percentage of Loss Recovered
-![Percentage Loss Recovered](https://github.com/mathias-wb/exploratory-analysis/blob/master/plots/Percentage%20of%20Loans%20Recovered.png)
+### Percentage of Loans Recovered
+![Percentage Loans Recovered](https://github.com/mathias-wb/exploratory-analysis/blob/master/plots/Percentage%20of%20Loans%20Recovered.png)
