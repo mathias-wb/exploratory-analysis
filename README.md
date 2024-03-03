@@ -55,5 +55,7 @@ Run `python analysis.py` to generate analysis and plots from the data.
     └── README.md
 
 ## Charts
-![Correlation](https://github.com/mathias-wb/exploratory-analysis/assets/32803202/6a33c3bc-b306-4618-947d-1921df4343d4)
+### Null Values Before and After Handling
 ![Null Values](https://github.com/mathias-wb/exploratory-analysis/blob/master/plots/Null%20Values%20(Before%20and%20After%20Handling).png)
+### Correlation Heatmap
+![Correlation](https://github.com/mathias-wb/exploratory-analysis/assets/32803202/6a33c3bc-b306-4618-947d-1921df4343d4)
