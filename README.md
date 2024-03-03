@@ -6,6 +6,7 @@
 - [Installation](#installation)
 - [Usage](#usage)  
 - [File Structure](#file-structure)
+- [Charts](#charts)
 
 ## Description
 
