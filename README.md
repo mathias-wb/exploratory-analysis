@@ -53,3 +53,6 @@ Run `python analysis.py` to generate analysis and plots from the data.
     ├── requirements.txt
     ├── LICENSE.txt
     └── README.md
+
+## Charts
+    ![Correlation Graph](https://github.com/mathias-wb/exploratory-analysis/blob/master/plots/Correlation.png)
