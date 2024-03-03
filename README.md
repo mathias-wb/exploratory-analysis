@@ -55,4 +55,4 @@ Run `python analysis.py` to generate analysis and plots from the data.
     └── README.md
 
 ## Charts
-    ![Correlation](https://github.com/mathias-wb/exploratory-analysis/assets/32803202/6a33c3bc-b306-4618-947d-1921df4343d4)
+![Correlation](https://github.com/mathias-wb/exploratory-analysis/assets/32803202/6a33c3bc-b306-4618-947d-1921df4343d4)
